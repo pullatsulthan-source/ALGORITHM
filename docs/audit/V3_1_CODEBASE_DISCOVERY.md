@@ -2,6 +2,7 @@
 
 **Audit date:** 2026-11-25  
 **Repository:** `pullatsulthan-source/ALGORITHM`  
+**Repository URL supplied:** `https://github.com/pullatsulthan-source/ALGORITHM.git`  
 **Branch inspected:** `main`  
 **Scope:** GitHub repository metadata, recursive repository tree, documentation and repository configuration visible through the connected GitHub account.
 
@@ -16,18 +17,15 @@ Therefore, this pass is a **repository discovery audit**, not a source-code qual
 | Property | Observed value |
 |---|---|
 | Repository | `pullatsulthan-source/ALGORITHM` |
+| Clone URL | `https://github.com/pullatsulthan-source/ALGORITHM.git` |
 | Default branch | `main` |
 | GitHub repository ID | `1465762827` |
-| API visibility field | `public` |
+| Visibility | `public` — confirmed by GitHub API |
 | API permissions for connected account | admin, maintain, pull, push, triage |
 
-### Security warning — visibility mismatch
+**Visibility decision:** The repository owner has explicitly confirmed that setting the repository to **Public** was intentional. Public visibility is therefore an accepted configuration, not an open discrepancy. No visibility change is required.
 
-Earlier setup screenshots and instructions indicated the repository should be **Private**. The GitHub repository metadata returned during this audit reports `visibility: public`.
-
-This is a material discrepancy. Verify the repository's Settings → General → Danger Zone / Change repository visibility in GitHub. If the intended classification is private, change it to **Private**. No visibility change was made by this audit.
-
-Until this is resolved, assume repository contents may be publicly accessible. Do not commit customer records, bank statements, identity documents, credentials, API keys, production exports or confidential business data.
+Because this repository is public, do not commit customer records, bank statements, identity documents, credentials, API keys, production exports or confidential business data.
 
 ## 3. Observed repository contents
 
@@ -42,6 +40,7 @@ The recursive tree contains documentation and repository setup files, including:
 - `STATUS.md`
 - `docs/architecture/OVERVIEW.md`
 - `docs/architecture/PLATFORM_DOMAINS.md`
+- `docs/audit/V3_1_CODEBASE_DISCOVERY.md`
 - `docs/contributing/WORKFLOW.md`
 - `docs/database/DB01-DB33_CATALOGUE.md`
 - `docs/decisions/DECISION_LOG.md`
@@ -64,9 +63,10 @@ This means no application framework or runtime can be reliably identified from t
 | Audit area | Result |
 |---|---|
 | Repository metadata | Inspected |
+| Clone URL and default branch | Inspected |
+| Repository visibility | Public; owner-confirmed and intentional |
 | Recursive file tree | Inspected |
 | Documentation bootstrap | Present |
-| Repository visibility | Public according to API; conflicts with earlier private intent |
 | Application source | Not present in inspected tree |
 | Framework/dependencies | Not identifiable |
 | API routes/services | Not available to inspect |
@@ -80,11 +80,10 @@ This means no application framework or runtime can be reliably identified from t
 
 ## 6. Required next actions
 
-### P0 — Security and source recovery
-1. Confirm and correct repository visibility to Private if that remains the intended setting.
-2. Replace the generic `SECURITY.md` template with a project-specific policy.
-3. Locate the actual ALGORITHM application source repository or upload a source ZIP/export into this repository.
-4. Exclude secrets, real customer data and financial/identity documents from source control.
+### P0 — Source recovery
+1. Locate the actual ALGORITHM application source repository or upload a source ZIP/export into this repository.
+2. Exclude secrets, real customer data and financial/identity documents from source control.
+3. Replace the generic `SECURITY.md` template with an ALGORITHM-specific vulnerability reporting policy before wider public collaboration.
 
 ### P1 — Once source code is available
 1. Inventory frontend/backend frameworks, package manifests and lockfiles.
