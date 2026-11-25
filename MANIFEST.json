@@ -1,0 +1,18 @@
+{
+  "package": "ALGORITHM Repository Bootstrap",
+  "version": "0.1.0",
+  "generated_date": "2026-11-20",
+  "purpose": "Documentation scaffold only; no application source code or deployed infrastructure included.",
+  "files": [
+    "README.md",
+    "STATUS.md",
+    "docs/architecture/OVERVIEW.md",
+    "docs/architecture/PLATFORM_DOMAINS.md",
+    "docs/database/DB01-DB33_CATALOGUE.md",
+    "docs/security/SECURITY_GOVERNANCE.md",
+    "docs/roadmap/ROADMAP.md",
+    "docs/requirements/REQUIREMENTS_REGISTER.md",
+    "docs/decisions/DECISION_LOG.md",
+    "docs/contributing/WORKFLOW.md"
+  ]
+}
