@@ -1,11 +1,11 @@
 # Project Status & Evidence Boundary
 
-**Snapshot:** 2026-11-20  
+**Snapshot:** 2026-11-27  
 **Status:** Documentation bootstrap; implementation status not verified.
 
 | Area | Current status | Evidence boundary |
 |---|---|---|
-| GitHub repository | Created | Private repository and main branch verified |
+| GitHub repository | Created; Public visibility intentionally confirmed by repository owner | Repository metadata and main branch verified |
 | Product vision | Documented | Based on prior project requirements and consolidation notes |
 | Platform domains | Working proposal | 17-domain list; earlier 16/17 discrepancy remains open |
 | DB01–DB33 | Architecture catalogue | Design/dictionary artifacts exist; not evidence of deployed database |
@@ -14,6 +14,7 @@
 | API/backend | Not verified | Actual application source repository not audited |
 | External lender/bank integrations | Not verified | Contracts, API credentials and live connectivity not established |
 | Production deployment | Not verified | No production deployment evidence in this bootstrap |
+| Security reporting | Project-specific policy added | Private reporting route depends on GitHub repository feature availability |
 
 ## Open reconciliation items
 - Resolve 16 vs 17 product-domain count.
