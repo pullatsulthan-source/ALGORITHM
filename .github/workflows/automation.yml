@@ -39,7 +39,12 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             git diff --check "origin/${{ github.base_ref }}...HEAD"
           else
-            git diff --check "${{ github.event.before }}" "${{ github.sha }}"
+            BEFORE="${{ github.event.before }}"
+            if [[ "$BEFORE" =~ ^0+$ ]]; then
+              git diff --check "origin/main...HEAD"
+            else
+              git diff --check "$BEFORE" "${{ github.sha }}"
+            fi
           fi
 
       - name: Validate JSON files
