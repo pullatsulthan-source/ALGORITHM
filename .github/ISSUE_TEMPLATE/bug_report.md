@@ -3,7 +3,8 @@ name: Bug report
 about: Report a reproducible ALGORITHM issue
 title: "[BUG] "
 labels: bug
-assignees: ""
+assignees: ''
+
 ---
 
 ## Summary
