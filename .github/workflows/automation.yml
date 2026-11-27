@@ -92,7 +92,7 @@ jobs:
             else
               PR_URL="$(gh pr create --base main --head "$BRANCH" \
                 --title "Automated PR: $BRANCH" \
-                --body "Automatically opened for branch `$BRANCH`. Validation runs in this workflow.\n\nPlease review the diff and linked issue context.")"
+                --body "Automatically opened for branch ${BRANCH}. Validation runs in this workflow.\n\nPlease review the diff and linked issue context.")"
             fi
           else
             PR_URL="$(gh pr view "$PR_NUMBER" --json url --jq .url)"
