@@ -99,3 +99,50 @@ This means no application framework or runtime can be reliably identified from t
 **V3.1 discovery result: BLOCKED for application-level audit by missing application source code.**
 
 The GitHub repository currently serves as an ALGORITHM documentation repository. Do not describe the application as implemented, tested, deployed or production-ready based on this repository snapshot.
+
+
+---
+
+## 8. Follow-up connection and repository audit — 2026-11-28
+
+This section supersedes any earlier configuration observations in this report where the repository has since been updated.
+
+### Connection verification
+
+- GitHub connector successfully authenticated against `pullatsulthan-source/ALGORITHM`.
+- Repository ID: `1465762827`.
+- Default branch: `main`.
+- Connected account permissions: `admin`, `maintain`, `pull`, `push`, `triage`.
+- Repository visibility: `public`, intentionally confirmed by the repository owner.
+- Repository is not archived.
+- Clone URL resolves in repository metadata to `https://github.com/pullatsulthan-source/ALGORITHM.git`.
+
+### Latest repository state
+
+- Latest inspected `main` commit: `a2d945da907ed9414e53a79c62dc54ec74e7f062`.
+- The latest commit customizes `.github/ISSUE_TEMPLATE/bug_report.md`.
+- `SECURITY.md` now contains an ALGORITHM-specific vulnerability reporting policy. The policy directs reporters to GitHub Private Vulnerability Reporting if enabled; availability of that feature was not independently verified.
+- `STATUS.md` records intentional public visibility and the current evidence boundary.
+- `docs/audit/V3_1_CODEBASE_DISCOVERY.md` remains the repository discovery audit.
+
+### Branch and automation observations
+
+- The `main` branch API response reports `protected: true`.
+- An active repository ruleset named `Copilot review for default branch` was returned by the GitHub API.
+- The GitHub Actions workflow-runs endpoint returned `total_count: 0`.
+- No `.github/workflows/` directory or workflow file was present in the inspected recursive tree.
+- A direct branch-protection detail request returned HTTP 403 (resource not accessible by this integration). Exact required reviews, status checks, restrictions and bypass settings therefore remain **unverified**. The `protected: true` flag alone does not establish which protections are configured.
+
+### Current technical conclusion
+
+The GitHub connection and repository read/write permissions are **verified**. Recent documentation commits and the latest tree are visible on `main`. Repository-level branch protection indicators exist, but detailed protection configuration is not accessible through this connection.
+
+The application-level audit remains **blocked**: the current repository tree is still documentation/configuration only. No application source, package manifests, backend/frontend implementation, database migrations, automated tests or deployment workflow were found. No runtime, database, API, authentication, tenant-isolation or production-security claims can be verified from this repository snapshot.
+
+### Updated follow-up actions
+
+1. Provide or push the actual ALGORITHM application source into the intended repository (or identify the correct source repository).
+2. Review the exact `main` branch protection configuration in GitHub Settings because this integration could not read its detailed rules.
+3. Enable and configure GitHub Actions CI after the application stack and test commands are known.
+4. Verify whether GitHub Private Vulnerability Reporting is enabled for this public repository.
+5. Continue application-level audit only after source code and safe test configuration are available.
