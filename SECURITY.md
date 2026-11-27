@@ -1,21 +1,32 @@
-# Security Policy
+# ALGORITHM Security Policy
 
-## Supported Versions
+## Project security status
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+ALGORITHM is under active design and repository preparation. A production application version and supported-release schedule have not yet been established. Do not interpret this repository's documentation or database design drafts as a deployed production service.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+**Do not report security vulnerabilities through public GitHub Issues, Discussions, pull requests, or public comments.**
 
-Use this section to tell people how to report a vulnerability.
+Preferred route:
+1. Check the repository's **Security** tab for **Report a vulnerability** (GitHub Private Vulnerability Reporting), if the feature is enabled.
+2. If private reporting is unavailable, contact the repository owner through an appropriate private GitHub communication channel. Do not publish exploit details while requesting contact.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+When reporting privately, include:
+- A concise description and potential impact.
+- Affected file, component, commit, or environment, if known.
+- Reproduction steps or a minimal proof of concept that does not access real user data.
+- Any suggested mitigation.
+- Whether the issue may already have been disclosed elsewhere.
+
+Do not include real customer information, bank statements, identity documents, passwords, API keys, access tokens, production database exports, or other confidential data in a report.
+
+## Response expectations
+
+Reports will be reviewed as project capacity permits. No fixed acknowledgement or remediation SLA is currently published. The reporter should receive a private update when the issue has been assessed and when a remediation or mitigation decision is available, where a response channel exists.
+
+Please allow reasonable time for investigation and coordinated remediation before any public disclosure. Do not access, modify, retain, or disclose data that is not yours while validating a suspected issue.
+
+## Supported versions
+
+No production release or supported-version matrix has been declared yet. Version support will be published when release management is established.
