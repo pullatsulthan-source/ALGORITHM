@@ -1,38 +1,30 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+about: Report a reproducible ALGORITHM issue
+title: "[BUG] "
+labels: bug
+assignees: ""
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Summary
+Describe the issue without including confidential or personal information.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## Expected behaviour
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Actual behaviour
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Steps to reproduce
+1.
+2.
+3.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## Environment
+- Commit / branch:
+- Browser or runtime:
+- Relevant component:
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+## Evidence
+Add sanitized screenshots, logs, or a minimal example. Remove credentials, tokens, customer data, bank details, identity documents, and other sensitive information.
 
-**Additional context**
-Add any other context about the problem here.
+## Security note
+If this may be a security vulnerability, do not submit it here. Follow the private process in [SECURITY.md](../../SECURITY.md).
