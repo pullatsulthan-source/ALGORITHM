@@ -8,7 +8,9 @@
 - Keep one canonical customer linked to multiple businesses; each business may have multiple projects; each project may have multiple applications; each application may have multiple lender submissions.
 - Use PostgreSQL as the proposed relational database baseline, subject to environment confirmation.
 - Use UUID primary keys, UTC timestamps, explicit currency codes and fixed-precision numeric types for monetary values.
-- Tenant-scoped records carry `tenant_id`; enforce same-tenant foreign-key relationships and PostgreSQL Row-Level Security (RLS).
+- **Single-tenant architecture:** ALGORITHM has one centrally managed organization workspace only. Multiple authorized users may access that same workspace; this is not a single-user design. Do not create customer-selectable tenants, tenant switching, or multiple independent organization workspaces.
+- Retain `tenant` and `tenant_membership` as the initial workspace and user-to-workspace association model for compatibility and controlled access. The production design must enforce exactly one canonical workspace through trusted provisioning and database constraints; clients cannot create tenants or change membership.
+- Tenant-scoped records carry the canonical `tenant_id`; enforce same-workspace foreign-key relationships and PostgreSQL Row-Level Security (RLS).
 - Store document binaries in private object storage; store metadata and opaque object keys in PostgreSQL.
 - Preserve source values, provenance, version history and audit events. Prefer additive changes; no destructive migration is implied.
 - AI outputs are recommendations/evidence artifacts, not authoritative credit, policy, sanction or compliance decisions.
@@ -17,8 +19,8 @@
 
 ```mermaid
 erDiagram
-    TENANT ||--o{ TENANT_MEMBERSHIP : has
-    APP_USER ||--o{ TENANT_MEMBERSHIP : joins
+    TENANT ||--o{ TENANT_MEMBERSHIP : has_users
+    APP_USER ||--o{ TENANT_MEMBERSHIP : joins_workspace
     TENANT ||--o{ CUSTOMER : owns
     CUSTOMER ||--o{ CUSTOMER_BUSINESS_LINK : linked
     BUSINESS ||--o{ CUSTOMER_BUSINESS_LINK : linked
@@ -81,7 +83,7 @@ The ERD shows principal relationships only. Junctions, tenant guards, policy/ver
 | DB29 Evidence & Source | `source_registry`, `source_evidence`, `verification_record` | Source URL/reference, captured time, claim linkage and verification status. |
 | DB30 AI Intelligence | `ai_model_version`, `ai_run`, `ai_recommendation`, `human_review` | Store model/prompt/version and review outcome; no autonomous policy mutation. |
 | DB31 Notifications & Automation | `event_outbox`, `notification_delivery`, `automation_definition`, `automation_run` | Transactional outbox, idempotent delivery and retry/dead-letter tracking. |
-| DB32 User, Tenant & Access | `app_user`, `tenant`, `tenant_membership`, `role`, `permission`, `membership_role`, `audit_event` | Global identity; tenant membership grants tenant context. |
+| DB32 User, Tenant & Access | `app_user`, `tenant`, `tenant_membership`, `role`, `permission`, `membership_role`, `audit_event` | Global identity; one canonical tenant/workspace only; membership associates authorized users with that workspace. No multi-tenant or tenant-switching capability. |
 | DB33 Consent & Privacy | `consent_record`, `privacy_notice_version`, `consent_withdrawal`, `retention_rule`, `privacy_request` | Purpose-specific consent, notice version, withdrawal and retention. |
 
 This catalogue is an initial logical design, not a final physical schema. Table names are proposed identifiers.
@@ -129,8 +131,8 @@ Each result stores input snapshot/reference, rule/model version, result, explana
 
 ## 6. Security and data governance
 
-1. Resolve authenticated global user, then active tenant membership server-side.
-2. Never trust client-supplied tenant IDs, role names or ownership claims.
+1. Resolve the authenticated global user, then verify ACTIVE membership in the single canonical workspace server-side.
+2. The canonical workspace is selected by trusted server configuration/provisioning, never by a client-supplied tenant ID. Never trust client-supplied role names or ownership claims.
 3. Apply API authorization and PostgreSQL RLS to all tenant-scoped tables.
 4. Runtime DB role must not own protected tables and must not have `BYPASSRLS`; migration role is separate.
 5. Test cross-tenant SELECT/INSERT/UPDATE/DELETE, search, exports and background jobs.
@@ -146,15 +148,15 @@ Each result stores input snapshot/reference, rule/model version, result, explana
 | `registration_master` FK ownership | Unresolved in existing blueprint. | Decide whether registration is owned by customer, business, project or a polymorphic subject/link model; document cardinality and tenant integrity. |
 | Vendor and finance-ledger reconciliation | Unresolved. | Map existing vendor/payment/commission records to DB21 canonical vendor and DB25 single ledger before migration. |
 | Identity resolution | No globally unique phone/email assumption. | Approve matching signals, duplicate review and merge authorization policy. |
-| Authentication provider and tenant model | Requires runtime confirmation. | Confirm identity provider, tenant creation/membership lifecycle and authorization matrix. |
+| Authentication and single-workspace access model | Supabase Auth is approved as the initial identity source. Single-tenant architecture is approved: one canonical workspace, multiple authorized users, no tenant switching. | Confirm sign-in provider settings and the authorization matrix. Define trusted first-workspace bootstrap and user invitation/activation/revocation workflow. |
 | PostgreSQL deployment target | PostgreSQL 16 is used only by the proposed CI smoke-test service. | Confirm actual managed DB/provider, version, extensions, backup and recovery requirements. |
 
 ## 8. Approval gates and next implementation sequence
 
 - **Gate 1 — Logical model review:** approve core relationships, table ownership and open decisions.
 - **Gate 2 — Physical schema:** prepare detailed column-level data dictionary, indexes, constraints and ERD revision.
-- **Gate 3 — Security design:** approve tenant/RLS policy matrix, roles and consent/retention rules.
+- **Gate 3 — Security design:** approve the single-workspace RLS policy matrix, roles, user onboarding/revocation and consent/retention rules.
 - **Gate 4 — Migration readiness:** inspect actual target DB, take/verify backup, write additive numbered SQL migrations and test on isolated staging.
 - **Gate 5 — Production:** explicit approval after integrity, security, reconciliation and rollback evidence.
 
-**No SQL migration is included or executed by this document. No live database has been created or modified.**
+**Implementation status note:** the existing Supabase foundation migration currently creates `tenant` and `tenant_membership` tables with RLS, but it does not yet enforce a one-workspace-only invariant. No tenant or user rows exist. This architecture decision is documentation-only at this stage; a separate reviewed migration is required before the live database enforces the single-workspace rule. No SQL migration is included or executed by this document.
