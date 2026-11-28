@@ -1,0 +1,139 @@
+name: ALGORITHM Documentation and Database CI
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+      - "docs/**"
+      - "chore/**"
+      - "automation/**"
+    paths:
+      - "docs/**"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: algorithm-db-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  documentation-integrity:
+    name: Documentation and repository integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check patch whitespace
+        run: git diff --check
+
+      - name: Validate JSON files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          errors = []
+          for path in Path(".").rglob("*.json"):
+              if ".git" in path.parts:
+                  continue
+              try:
+                  json.loads(path.read_text(encoding="utf-8"))
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+          if errors:
+              raise SystemExit("\n".join(errors))
+          print("JSON validation passed.")
+          PY
+
+      - name: Verify canonical architecture documents
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s README.md
+          test -s STATUS.md
+          test -s docs/architecture/OVERVIEW.md
+          test -s docs/database/DB01-DB33_CATALOGUE.md
+          test -s docs/database/WORKFLOW_DATABASE_IMPLEMENTATION_BLUEPRINT.md
+          grep -q "DB33" docs/database/DB01-DB33_CATALOGUE.md
+          grep -q "registration_master" docs/database/DB01-DB33_CATALOGUE.md
+          echo "Canonical architecture documents are present."
+
+      - name: Validate migration file naming
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(docs/database/migrations/*.sql)
+          for file in "${files[@]}"; do
+            name="$(basename "$file")"
+            if [[ ! "$name" =~ ^[0-9]{3}_[a-z0-9_]+\.sql$ ]]; then
+              echo "Invalid migration filename: $name"
+              exit 1
+            fi
+          done
+          printf 'Migration naming check passed (%s SQL files found).\n' "${#files[@]}"
+
+  postgres-migration-check:
+    name: PostgreSQL migration smoke test
+    runs-on: ubuntu-latest
+    needs: documentation-integrity
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: algorithm_ci
+          POSTGRES_PASSWORD: algorithm_ci_only
+          POSTGRES_DB: algorithm_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U algorithm_ci -d algorithm_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply ordered SQL migrations to ephemeral PostgreSQL
+        shell: bash
+        env:
+          PGPASSWORD: algorithm_ci_only
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(docs/database/migrations/*.sql)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No executable SQL migrations are present yet; database smoke test is intentionally skipped."
+            echo "This is not evidence of a deployed or tested production database."
+            exit 0
+          fi
+
+          previous=""
+          for file in "${files[@]}"; do
+            name="$(basename "$file")"
+            version="${name%%_*}"
+            if [ -n "$previous" ] && [[ "$version" == "$previous" ]]; then
+              echo "Duplicate migration version: $version"
+              exit 1
+            fi
+            previous="$version"
+            echo "Applying $file"
+            psql "host=127.0.0.1 port=5432 dbname=algorithm_ci user=algorithm_ci sslmode=disable" \
+              -v ON_ERROR_STOP=1 -f "$file"
+          done
+
+          psql "host=127.0.0.1 port=5432 dbname=algorithm_ci user=algorithm_ci sslmode=disable" \
+            -v ON_ERROR_STOP=1 -c "SELECT current_database(), current_setting('server_version');"
+          echo "All SQL migrations applied successfully to ephemeral CI PostgreSQL."
