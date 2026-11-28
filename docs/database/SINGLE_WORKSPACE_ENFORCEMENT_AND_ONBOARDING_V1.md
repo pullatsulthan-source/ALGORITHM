@@ -1,130 +1,65 @@
 # ALGORITHM — Single-Workspace Enforcement & User Onboarding V1
 
-**Status:** Design specification for review. Not executable migration SQL. No live database changes are made by this document.
+**Status:** Architecture decision approved. SQL migration drafted in the same branch but not applied to Supabase. Backend onboarding remains a subsequent implementation task.
 
-## 1. Approved architecture decision
+## 1. Approved decisions
 
-ALGORITHM uses a **single-tenant / single-workspace** operating model:
+- Workspace name: **AVITRIX**.
+- Operating model: exactly one centrally managed workspace; no multi-tenant capability or tenant switching.
+- Multiple authorized users may access the same workspace.
+- **Only an authorized operator may activate a user's membership.** Invitation acceptance alone does not grant access.
+- Supabase Auth is the approved initial identity source. Specific sign-in provider settings remain unconfigured/unselected.
+- Multiple businesses, projects, applications and customer records remain supported inside the one workspace.
+- DB01–DB33 catalogue and numbering remain unchanged.
 
-- Exactly one centrally managed organization workspace is intended.
-- Multiple authorized users may access that same workspace.
-- A user cannot create, select, switch between, or join another independent tenant.
-- Multiple businesses, projects, applications and customer records remain supported **inside the one workspace**. Single-tenant does not mean single-business or single-user.
-- Supabase Auth remains the approved initial identity source.
-- The existing DB01–DB33 catalogue and numbering remain unchanged.
-
-## 2. Live baseline verified before this design
+## 2. Verified live baseline
 
 Supabase project: `ALGORITHM-PRODUCTION` (`wzuztgjkksvubuoomduu`), PostgreSQL 17.12.
 
-Current public tables (all RLS enabled; all currently contain zero rows):
+The three public tables currently exist with RLS enabled and zero rows:
 
-- `public.app_user`: `id` references `auth.users(id)`; display name and timestamps.
-- `public.tenant`: `id`, `name`, `status`, timestamps.
-- `public.tenant_membership`: `tenant_id`, `user_id`, membership status and timestamps; unique tenant/user pair.
+- `public.app_user`: profile keyed to `auth.users(id)`.
+- `public.tenant`: tenant master with name and status.
+- `public.tenant_membership`: user-to-tenant membership, unique on `(tenant_id, user_id)`.
 
-Current migration history contains `20261128035316_core_identity_tenant_foundation_v1`.
+Migration history contains `20261128035316_core_identity_tenant_foundation_v1`. Current client permissions are SELECT only under the existing RLS policies; no client INSERT/UPDATE/DELETE policies exist. No Auth users, profiles, tenants or memberships have been inserted by the foundation migration.
 
-Current client permissions: SELECT only for authenticated users, with self/active-membership RLS policies; no client INSERT/UPDATE/DELETE policies. No app-user or tenant records currently exist. The existing schema does **not** yet enforce a one-workspace-only invariant.
+## 3. Single-workspace enforcement migration
 
-## 3. Proposed additive schema change
+File: `supabase/migrations/20261128090000_single_workspace_enforcement_v1.sql`
 
-Keep the three existing tables. Do not drop or rename them.
+The draft migration:
+1. Adds `tenant.is_canonical` with a TRUE-only check constraint.
+2. Adds a unique partial index so at most one canonical workspace row can exist.
+3. Inserts the canonical workspace named `AVITRIX`.
+4. Verifies that exactly one canonical workspace exists before commit.
+5. Leaves existing RLS policies and client write restrictions unchanged.
 
-### 3.1 Canonical workspace marker
+The migration is committed for review only. It has **not** been applied to the live Supabase project.
 
-Add a non-null boolean marker to `public.tenant`, with a database check requiring it to be TRUE, and a unique index over that marker.
+## 4. User onboarding and activation
 
-Intended effect:
+1. An authorized operator creates/invites a user through the selected Supabase Auth provider.
+2. The trusted backend verifies the Auth identity.
+3. The backend creates/updates `app_user` and creates a `tenant_membership` row tied to the canonical AVITRIX workspace with status `INVITED`.
+4. Invitation acceptance does not activate access.
+5. An authorized operator reviews and changes membership to `ACTIVE` through a trusted backend operation.
+6. Every protected request verifies the Auth JWT and confirms ACTIVE membership in the canonical workspace.
+7. Authorized operator may set membership to `SUSPENDED` or `REVOKED`; those states deny workspace access.
 
-- Every tenant row is designated as the one canonical workspace.
-- The unique index prevents a second tenant row.
-- The initial workspace is created once by a trusted bootstrap operation.
-- The database may temporarily contain zero tenant rows before bootstrap; the deployment gate must not declare onboarding ready until exactly one canonical workspace exists.
+No public client write policies, automatic Auth trigger, or `SECURITY DEFINER` function are proposed. The service-role/secret key must never be exposed in browser or mobile code.
 
-Do not rely on a frontend check or a tenant ID supplied by the browser to enforce this invariant.
+## 5. Implementation still required
 
-### 3.2 Membership integrity
+- Review and apply the SQL migration.
+- Implement trusted server-side invitation, profile provisioning and operator-only membership activation/suspension/revocation.
+- Decide the sign-in provider(s) in Supabase Auth.
+- Define who qualifies as an authorized operator and how operator authority is secured.
+- Approve the role/permission matrix separately; no role hierarchy is inferred here.
+- Test RLS and onboarding with separate test identities, then run Supabase Security Advisor.
 
-Keep the existing unique constraint on `(tenant_id, user_id)`. Keep the existing membership states: `INVITED`, `ACTIVE`, `SUSPENDED`, `REVOKED`.
+## 6. Explicit exclusions
 
-The trusted backend must always attach users to the canonical workspace. The client must not choose `tenant_id`, write membership status, or grant itself access.
+This update does not configure Auth providers, create Auth users, implement backend endpoints, define roles/permissions, or integrate application code. No live database changes have been made by this document or the migration draft.
 
-### 3.3 Profile integrity
-
-Keep `app_user.id` linked to `auth.users.id`. A profile is provisioned only after the Auth identity has been verified by the trusted backend. Do not use user-editable Auth metadata as an authorization source.
-
-## 4. Trusted onboarding workflow
-
-1. An authorized operator creates/invites a user through the approved Supabase Auth flow.
-2. The backend verifies the Auth user identity from a trusted server-side context.
-3. In one controlled transaction, the backend creates or updates the `app_user` profile and creates one `tenant_membership` row for the canonical workspace.
-4. New membership starts as `INVITED` (or remains inactive until the invitation/approval process is completed).
-5. An authorized operator activates membership after the required verification.
-6. On each protected request, the backend verifies the Supabase access token and confirms the user's ACTIVE membership in the canonical workspace.
-7. Suspension or revocation changes membership status through the trusted backend; the next authorization check denies workspace access.
-
-No automatic Auth trigger is included in this design. No public client write policies are proposed. No `SECURITY DEFINER` function is proposed.
-
-## 5. Access control boundaries
-
-- `anon`: no access to private application records.
-- `authenticated`: only the explicitly approved read access enforced by RLS; no direct writes to identity or membership tables.
-- Trusted backend: performs invitation, profile provisioning, membership activation/suspension/revocation using server-only credentials.
-- Never expose Supabase `service_role` or secret keys in browser/mobile clients.
-- Keep role/permission matrix out of this migration. The user has not yet approved a role hierarchy or permission matrix.
-- Every future tenant-scoped business table must use the single canonical workspace ID and have RLS designed for its actual access pattern.
-
-## 6. Migration sequence (proposed; not yet applied)
-
-**Migration A — Single-workspace invariant**
-- Add canonical-workspace marker and constraints/index to `public.tenant`.
-- Verify no existing tenant rows violate the intended invariant (currently verified count is zero).
-- Keep RLS and existing SELECT policies intact.
-- Do not insert the workspace row until its official display/legal name is supplied and approved.
-
-**Bootstrap — Create the one workspace**
-- Insert exactly one canonical workspace using the approved name.
-- Verify the count is exactly one.
-- Record the workspace UUID in trusted deployment configuration/secret management, not in browser-controlled configuration.
-
-**Migration B / backend onboarding**
-- Implement server-side profile and membership provisioning.
-- Add no browser write permissions.
-- Implement activation, suspension and revocation workflow.
-- Do not introduce roles/permissions until the authorization matrix is separately approved.
-
-## 7. Required verification tests
-
-1. A second tenant insert is rejected by the database uniqueness constraint.
-2. A non-canonical tenant row cannot be inserted.
-3. The workspace bootstrap creates exactly one row and is safe to retry without duplicating it.
-4. An unauthenticated caller cannot read workspace/private data.
-5. An authenticated user without ACTIVE membership cannot access protected workspace data.
-6. An ACTIVE member can read only the rows allowed by the approved RLS policy.
-7. A user cannot create, update, delete or reassign their own membership through the client API.
-8. A suspended/revoked user is denied on the next protected request.
-9. A client cannot override the canonical workspace by sending a different tenant ID.
-10. No service-role key appears in frontend code, public environment variables, repository history or client bundles.
-
-Run Supabase Security Advisor after DDL and verify RLS behaviour with separate test identities before production use.
-
-## 8. Decisions still required before live implementation
-
-- Official workspace display name (and legal name if different).
-- Who is authorized to invite and activate users.
-- Which sign-in provider(s) to enable in Supabase Auth (not selected by this architecture decision).
-- Whether invitation acceptance alone activates membership or requires operator approval.
-- The role/permission matrix (not included or inferred here).
-
-## 9. Explicit exclusions
-
-This design does not:
-- Apply any SQL migration.
-- Create a tenant/workspace row or Auth user.
-- Configure Google, email, phone or another Auth provider.
-- Define application roles or permissions.
-- Integrate application code or deploy an onboarding endpoint.
-- Change DB01–DB33 numbering or resolve unrelated open architecture decisions.
-
-**Implementation gate:** Only after the remaining decisions are approved should a numbered migration be prepared, reviewed, tested against staging, applied, and verified.
+**Production gate:** Do not declare onboarding ready until the migration is reviewed/applied, exactly one AVITRIX workspace is verified, operator-only activation is implemented, and authorization tests pass.
